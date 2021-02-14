@@ -27,12 +27,13 @@ dprint(X)
 
 dprint(np.shape(X))
 
-
+# get gram matrix
 G = kfs.k0(X,X)
 
 
 dprint(np.shape(G))
 
+#get distance matrix ('similarities' is actually a distance matrix)
 kernels = kers.kernels(X=None, kernelname=None, G=G)
 similarities = kernels.get_distance_from_precomputed_gram()
 
@@ -40,10 +41,12 @@ similarities = kernels.get_distance_from_precomputed_gram()
 depths_dict = {}
 gridpoints2d = None
 
+# get 2d embedding using a distance matrix
 points2d_mds = dr.get_nmds_projections(data_list=None, similarities=similarities)
 
 analyzer = sna.analyzer(X,2)
 
+# get set depth values
 depths = analyzer.get_set_depth()
 
 depths = np.array(depths)
@@ -55,8 +58,8 @@ dprint(depths)
 np.random.seed(15)
 p = {
         'N':200,
-        'alpha':1.5,
-        'pol_res':200,
+        'alpha':1.5, # for determining boxplot bands
+        'pol_res':200, # polar coordinate resolution
         'mono_bw':0.01, # kde bandwidth in monofit 0.0001
         'N_i': 401, # number of iterations
         'M_i':0, # number of constrained iterations
@@ -76,6 +79,7 @@ p = {
 N = len(points2d_mds)
 A = np.zeros((N,2))
 
+# depth value array, distance matrix 
 garl = garl.garl(depths, p['N_i'],p['M_i'],res=p['pol_res'], bw=p['mono_bw'], max_step=p['max_step'],
                        num_old=p['num_old'], num_old_spline=p['num_old_spline'], depth_type=p['depth_type'],  alpha=p['alpha'])
 points_dmds = garl.get_mds_dc(None, points2d_mds, p['show_fig'], p['spline_lag'], p['depth_factor'], p['smooth_factor'],
