@@ -11,6 +11,8 @@ To compute depth based embeddings:
 3. Modify input ("infile") path in https://bitbucket.org/mukundraj/dbvis/src/master/results/2017-06-18/breast/setdepth/run.py
 3. python run.py
 
+Output: Point positions and additional information after each iteration fo optimization is written out to the {$ROOT}/results/2017-06-18/breast/setdepth/output_tsvs folder
+
 
 Visualization:
 
