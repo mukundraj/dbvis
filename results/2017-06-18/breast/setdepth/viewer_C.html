@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<table border="0">
+    <tr><td><span style="font-size:32px" id="cid"></span></td></tr>
+    <tr>
+        <td>
+            <div style="position: relative;" id="chart">
+                <!--<canvas id="layer1" width="1024" height="1024"-->
+                <!--style="position: absolute; left: 0; top: 0; z-index: 0;"></canvas>-->
+                <!--<canvas id="layer2" width="1024" height="1024"-->
+                <!--style="position: absolute; left: 0; top: 0; z-index: 1;"></canvas>-->
+                <canvas id="layer1" width="1024" height="1024"></canvas>
+                <svg width="1024" height="1024" stroke="#fff" stroke-width="0.5"></svg>
+            </div>
+        </td>
+    </tr>
+</table>
+<style>
+    .hidden {
+        display: none;
+    }
+
+    div.tooltip {
+        background-color: #fff;
+        padding: 7px;
+        text-shadow: #f5f5f5 0 1px 0;
+        font: 26px Helvetica Neue;
+        border: 2.5px solid;
+        border-color: black;
+        border-radius: 3px;
+        opacity: 0.95;
+        position: absolute;
+        box-shadow: rgba(0, 0, 0, 0.3) 0 2px 10px;
+    }
+
+    svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    image {
+        pointer-events: none;
+    }
+
+</style>
+
+<!--<canvas width="1024" height="1024"></canvas>-->
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="https://d3js.org/d3-contour.v1.min.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
+<script>
+
+    var N_i = 10;
+    var data_path = "./output_tsvs/", values = null;
+    var cid = 0, spline_lag = null;
+    var data_tsvs=new Array(), data_jsons=new Array(), data_cur=new Array(), ori_deps = new Array(),
+            imgs_spline_only = new Array();
+    var thresholds = d3.range(0,1,0.1);
+    var contours = d3.contours()
+            .size([200, 200])
+            .thresholds(thresholds);
+    var transform = {};
+    transform.x = 0;
+    transform.y = 0;
+    transform.k = 1;
+    var image = null;
+
+
+
+
+    function pad(num, size) {
+        var s = "000000000" + num;
+        return s.substr(s.length-size);
+    }
+
+    function round(value, decimals) {
+        return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
+    }
+
+    var canvas = d3.select("#layer1"),
+            context = canvas.node().getContext("2d");
+
+    var svg = d3.select("svg"),
+            width = +svg.attr("width"),
+            height = +svg.attr("height");
+    //    var path = d3.geoPath(null, context2),
+    var color = d3.scaleSequential(d3.interpolateYlGnBu).domain([0, 1]);
+
+
+    var x = d3.scaleLinear()
+            .domain([-1, 1])
+            .range([0, 1024]);
+
+    var y = d3.scaleLinear()
+            .domain([-1, 1])
+            .range([1024, 0]);
+
+    d3.json(data_path.concat("orig_depths.json"), function (data_json) {
+        // For colorbar
+
+        ori_deps = data_json["orig_depths"];
+        var max_val = data_json["max_orig_depth"];
+        var min_val = data_json["min_orig_depth"];
+        spline_lag = parseInt(data_json["spline_lag"]);
+        N_i = parseInt(data_json["N_i"]);
+
+        for (var i=0;i<N_i;i++){
+            data_tsvs.push(data_path.concat(pad(i,4)).concat(".tsv"));
+            if (i%spline_lag==0){
+                data_jsons.push(data_path.concat("spline_only_").concat(pad(i/spline_lag,4)).concat(".json"));
+                imgs_spline_only.push(data_path.concat("spline_only_").concat(pad(i/spline_lag,4)).concat(".png"));
+            }
+        }
+        //intialization of values
+        d3.json(data_jsons[0], function (data_json) {
+            values = data_json["field"];
+//            draw_canvas2_init();
+
+        })
+
+
+    });
+
+
+
+
+
+
+    document.onkeydown = function(e) {
+        e = e || window.event;
+        if (e.keyCode == '37') {
+            if (cid === 0){
+                cid = N_i-1;
+            }else{
+                cid = (cid -1)% N_i;
+            }
+
+        } else if (e.keyCode == '39') {
+            // right -> show next image
+
+            cid = (cid+1) % N_i;
+
+        }
+
+        d3.tsv(data_tsvs[cid], function (error, data) {
+
+            if (error) throw error;
+
+            data_cur = [];
+
+            data.forEach(function (d, i) {
+                d.cpx = +d.cpx;
+                d.cpy = +d.cpy;
+                data_cur.push([x(d.cpx), y(d.cpy)]);
+            });
+
+
+        });
+//        console.log(cid%spline_lag, Math.floor(cid/spline_lag), data_jsons[Math.floor(cid/spline_lag)])
+        if (cid%spline_lag==0 || cid%spline_lag==spline_lag-1){
+
+            d3.json(data_jsons[Math.floor(cid/spline_lag)], function (data_json) {
+                values = data_json["field"];
+//                console.log(data_jsons[cid/spline_lag])
+
+
+
+
+
+                render_svg();
+
+
+            })
+        }else{
+            render_svg();
+        }
+
+
+
+        $('#cid').html(String(cid));
+
+    }
+
+
+
+    var g = svg.append("g");
+
+    function render_svg(){
+
+        d3.selectAll("g > * ").remove();
+        image =  g.append("image");
+        image.attr("width",  1024 + "px")
+                .attr("height", 1024 + "px")
+                .attr("xlink:href", imgs_spline_only[Math.floor(cid/spline_lag)]);
+
+
+        g.selectAll("path")
+                .data(contours(values))
+                .enter().append("path")
+                .attr("d", d3.geoPath(d3.geoIdentity().scale(width / 200)))
+                .attr("fill", "none")
+                .attr("stroke","#000");
+//        svg.append("rect")
+//                .attr("fill", "none")
+//                .attr("pointer-events", "all")
+        svg.attr("width", width)
+                .attr("height", height)
+                .call(d3.zoom()
+                        .scaleExtent([1, 8])
+                        .on("zoom", zoom));
+        var circle = g.selectAll("circle")
+                .data(data_cur)
+                .enter().append("circle")
+                .attr("r", function (d, i) { return (5+8*ori_deps[i])/transform.k})
+                .attr("fill", "#ffffff" )
+                .attr("fill-opacity",1)
+                .attr("stroke", "black")
+                .attr("stroke-width", 2/transform.k)
+                .attr("transform", transformf(d3.zoomIdentity))
+                .on('mousemove', function (d,i) {
+                    tooltip.classed('hidden', false)
+                            .attr('style', 'left:' + (d3.event.clientX + 20) + 'px; top:' + (d3.event.clientY - 20) + 'px')
+                            .html("id:".concat(i.toString()).concat(" depth:").concat(round(ori_deps[i],2).toString()));
+                })
+                .on('mouseout', function () {
+                    tooltip.classed('hidden', true);
+                });
+
+
+    }
+
+    var tooltip = d3.select('#chart').append('div')
+            .attr('class', 'hidden tooltip');
+
+    function zoom() {
+        transform = d3.event.transform;
+        g.attr("transform", d3.event.transform);
+//        image.attr("x", transform.x)
+//                .attr("y",transform.y);
+
+//         svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+        render_svg()
+    }
+
+    function transformf(t) {
+        return function(d) {
+            return "translate(" + t.apply(d) + ")";
+        };
+    }
+
+
+    function zoom_canvas() {
+        console.log(context)
+//        transform = d3.event.transform;
+        context.save();
+        context.clearRect(0, 0, width, height);
+        context.translate(transform.x, transform.y);
+        context.scale(transform.k, transform.k);
+        context.restore();
+    }
+
+
+
+</script>

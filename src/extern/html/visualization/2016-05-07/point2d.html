@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .fullwidth {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script src="libs/combinations.js"></script>
+<script src="libs/jquery-1.12.3.min.js"></script>
+
+<table width="1024" cellpadding="10" cellspacing="0" border="1">
+    <tr>
+        <th>Points</th>
+        <th>Bands</th>
+    </tr>
+    <tr>
+        <td><div id="points" valign="top"></div></td>
+        <td>
+            <div id="bands"></div>
+            <div id="bandselect">
+                <input type="checkbox" name="band" value="rectange" checked>Rectange &nbsp;
+                <input type="checkbox" name="band" value="sphere">Sphere &nbsp;
+                <input type="checkbox" name="band" value="hull">Convex hull &nbsp;
+                <input type="checkbox" name="band" value="ellipse">Ellipse <br>
+            </div>
+            <div id="slider"><input class="fullwidth" type="range" min="1" max="100" step="1" value="1"/></div>
+        </td>
+    </tr>
+
+    <tr>
+        <th>Depth contours - rectangle band</th>
+        <th>Depth contours - sphere band</th>
+    </tr>
+    <tr>
+        <td><div id="rectangle"></div></td>
+        <td><div id="sphere"></div></td>
+    </tr>
+    <tr>
+        <th>Depth contours - convex hull band</th>
+        <th>Depth contours - ellipse band</th>
+    </tr>
+    <tr>
+        <td><div id="hull"></div></td>
+        <td><div id="ellipse"></div></td>
+    </tr>
+</table>
+
+<script>
+
+     $(".fullwidth").on("input", function(){console.log(this.value)});
+    console.log(k_combinations([1, 2, 3,4], 3))
+
+    var width=512, height=512;
+
+    var x = d3.scale.linear()
+            .range([0, width]);
+
+    var y = d3.scale.linear()
+            .range([height, 0]);
+
+    var svg_points = d3.select("#points").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+    var svg_bands = d3.select("#bands").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+    d3.tsv("output.tsv", function(error, data) {
+        if (error) throw error;
+
+        data.forEach(function (d) {
+            d.g0 = +d.g0;
+            d.g1 = +d.g1;
+        });
+
+        svg_points.selectAll(".dot")
+                .data(data)
+                .enter().append("circle")
+                .attr("class", "dot")
+                .attr("r", 3)
+                .attr("cx", function(d) { return x(d.g0); })
+                .attr("cy", function(d) { return y(d.g1); })
+                .style("fill", function(d) { return 'blue'; });
+
+
+        });
+</script>
+
+<script>
+
+</script>
+
+</body>
+</html>

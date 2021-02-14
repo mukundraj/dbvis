@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        /*  For colorbar and associated axis*/
+        .cbaxis path,
+        .cbaxis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+
+        .cbaxis text {
+            font: 10px sans-serif;
+        }
+
+    </style>
+</head>
+<body>
+
+<table border="1">
+    <tr>
+        <td>
+
+        </td>
+        <td>show band?<br>
+        <form id="theform">
+         Show Images : <input type="checkbox" name="checkfield" id="checkbox1"  onchange="toggle_show_images(this)"/> <br>
+         Show Image On Hover : <input type="checkbox" name="checkfield" id="checkbox2"  onchange="toggle_show_on_hover(this)"/>
+        </form>
+        </td>
+        <td><button id="download">Download Pdf</button></td>
+    </tr>
+  <tr>
+    <td style="position:relative;" width="512">
+            <div>
+                <img style="display:block;" width="100%" height="100%" src="" id="img_spline1" />
+            </div>
+    </td>
+      <td>
+          <div id="bandhoverbuttons"></div>
+          <div id="details">point details</div>
+
+      </td>
+    <td style="position:relative;" width="512">
+    </td>
+  </tr>
+  <tr>
+    <td rowspan="2" style="position:relative;" width="2048">
+        <canvas id="canvas1" width="2048px" height="2048px">
+        </canvas>
+    </td>
+      <td width="256px">
+         Iteration no: <span id="cid">0</span>
+      </td>
+    <td rowspan="2" style="position:relative;" width="2048">
+        <canvas id="canvas2" width="2048px" height="2048px">
+        </canvas>
+    </td>
+
+  </tr>
+    <tr>
+        <td><svg id="colorbar" width="256" height="512"></svg></td>
+    </tr>
+    <tr>
+        <td colspan="3">
+             <span>
+                <img src="" id="img_dis" width="33%"/>
+                <img src="" id="img_dep" width="33%"/>
+                <img src="" id="img_tot" width="33%"/>
+            </span>
+        </td>
+    </tr>
+</table>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script src="../../../libs/html2canvas.js"></script>
+<script src="../../../libs/jspdf.debug.js"></script>
+<script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.1.1.min.js"></script>
+<!--<script src="./colorbrewer.js"></script>-->
+
+
+<!--<script src="https://d3js.org/d3.v4.min.js"></script>-->
+<!--<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>-->
+<!--<script>-->
+
+<!--var yellow = d3.interpolateYlGn(0), // "rgb(255, 255, 229)"-->
+    <!--yellowGreen = d3.interpolateYlGn(0.5), // "rgb(120, 197, 120)"-->
+    <!--green = d3.interpolateYlGn(1); // "rgb(0, 69, 41)"-->
+
+
+<!--</script>-->
+
+
+<script>
+
+    var base_path = "../../../../../results/2017-02-06/mnist/";
+
+//    var data_path = "../../../../../results/2017-02-06/social_nets/output_tsvs/";
+    var data_path = "../../../../../results/2017-02-06/mnist/output_tsvs/";
+
+     var N_i = 1057;
+
+
+    var width=2048, height=2048;
+    var data_cur=new Array(), data_new=new Array(), ori_deps = new Array();
+    var data_dfs = new Array(), data_dpfs = new Array();
+    var color = null;
+    var show_images = false, show_on_hover=false;
+    var num_points = null;
+
+    var names;
+
+    $(document).ready(function() {
+        var d_canvas = document.getElementById('canvas1');
+        var context = d_canvas.getContext('2d');
+
+        $('#download').click(function() {
+            html2canvas($("#canvas2"), {
+                onrendered: function(canvas) {
+                    var imgData = canvas.toDataURL(
+                            'image/png');
+//                    var doc = new jsPDF('p', 'mm');
+//                    doc.addImage(imgData, 'PNG', 10, 10);
+//                    doc.save('sample-file.pdf');
+
+                    document.write('<img src="'+imgData+'"/>')
+                }
+            });
+        });
+    });
+
+    function toggle_show_images(checkboxElem) {
+        if (checkboxElem.checked) {
+            show_images = true;
+            draw_canvas2();
+        } else {
+            canvas2.fillStyle="white";
+            canvas2.fillRect(0,0,width,height)
+//            canvas2.clearRect(0, 0, width, height);
+            show_images = false;
+            draw_canvas2();
+        }
+    }
+
+
+    function toggle_show_on_hover(checkboxElem) {
+        if (checkboxElem.checked) {
+            show_on_hover = true;
+        } else {
+            show_on_hover = false;
+        }
+    }
+
+    function adaptive_cb(sel, X_init, Y_init, height, color, classname, v_lo, v_hi,color_domain) {
+
+        var arr = d3.range(101);
+
+
+        //position scale
+//        var xScale = d3.scale.linear().domain([0,1]).range([(1.0 - v_lo) * height, (1.0 - v_hi) * height]);
+        var xScale = d3.scale.linear().domain([0,101]).range([(1.0 - v_lo) * height, (1.0 - v_hi) * height]);
+
+        var colorScaler = d3.scale.linear().domain([0,101]).range(color_domain);
+
+        console.log(xScale(0.5),xScale(1.5))
+
+        sel.append("g")
+                .classed(classname, true)
+                .selectAll('rect').data(arr).enter()
+                .append('rect')
+                .style("fill", function (d) {
+                    return color(colorScaler(d ));
+                })
+                .attr({
+                    x: X_init,
+                    y: function (d) {
+                        return Y_init + xScale(d);
+                    },
+                    height: 3,
+                    width: 40
+                });
+    }
+
+    function color_scale(svg, X_init, Y_init, height, domain, classname, orient) {
+
+
+        var y = d3.scale.linear()
+                .domain(domain)
+                .range([height, 0]);
+
+        svg
+                .append("g")
+                .classed(classname, true)
+                .attr("transform", "translate(" + X_init + "," + Y_init + ")")
+
+                .append("g")
+
+                .attr("class", "cbaxis")
+                .call(d3.svg.axis()
+                        .scale(y)
+                        .orient(orient)
+                        .ticks(5, "g"));
+
+
+    }
+
+    function pad(num, size) {
+        var s = "000000000" + num;
+        return s.substr(s.length-size);
+    }
+
+    function round(value, decimals) {
+        return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
+    }
+
+    function arrow(ctx, x1,y1,x2,y2, arrow_color){
+        var dx=x2-x1;
+        var dy=y2-y1;
+        var radians=Math.atan2(dy,dx);
+        var length=Math.sqrt(dx*dx+dy*dy);
+        // save the unrotated context state
+        ctx.save();
+        // set the rotation point as x1,y1
+        ctx.translate(x1,y1);
+        // rotate the canvas by the angle of the vector
+        ctx.rotate(radians);
+//        // draw the circle
+//        ctx.beginPath();
+//        ctx.arc(0,0,8,0,Math.PI*2);
+//        ctx.closePath();
+//        ctx.fillStyle=arrow_color;  // or gradient if you prefer
+//        ctx.fill();
+        // draw the arrow
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.lineTo(length,0);
+        ctx.lineTo(length-7,-4);
+        ctx.lineTo(length-7,4);
+        ctx.lineTo(length,0);
+        ctx.closePath();
+        ctx.fillStyle=arrow_color;
+        ctx.fill();
+        ctx.strokeStyle=arrow_color;
+        ctx.stroke();
+        // restore the context to its unrotated state
+        ctx.restore();
+    }
+
+    var details_div = d3.select("#details");
+
+
+    var imgs_spline=new Array(), imgs_dis=new Array(), imgs_dep=new Array(), imgs_tot=new Array(), data_tsvs=new Array();
+
+
+
+
+    for (var i=0;i<N_i;i++){
+        imgs_spline.push(data_path.concat("spline_").concat(pad(i,4)).concat(".png"));
+        imgs_dis.push(data_path.concat("dis_").concat(pad(i,4)).concat(".png"));
+        imgs_dep.push(data_path.concat("dep_").concat(pad(i,4)).concat(".png"));
+        imgs_tot.push(data_path.concat("tot_").concat(pad(i,4)).concat(".png"));
+
+        data_tsvs.push(data_path.concat(pad(i,4)).concat(".tsv"));
+
+    }
+
+
+    var hoverdata = [];
+
+
+    d3.json(data_path.concat("orig_depths.json"), function (data_json) {
+        // For colorbar
+
+        ori_deps = data_json["orig_depths"];
+        names =  data_json["names"];
+        var max_val = data_json["max_orig_depth"];
+        var min_val = data_json["min_orig_depth"];
+
+        color = d3.scale.linear().domain([min_val, 0.5*(min_val+max_val), max_val]).range(["blue","green", "red"]).interpolate(d3.interpolateHsl);
+
+        num_points = ori_deps.length ;
+
+        if (typeof names != 'undefined'){
+            for (var i = 0; i < num_points; i++) {
+                hoverdata.push({id: i, name: names[i]});
+            }
+        }
+        var hoverdiv = d3.select("#bandhoverbuttons")
+                    .selectAll("span")
+                    .data(hoverdata)
+                    .enter()
+                    .append("span")
+                    .attr("class","hoverfielddiv")
+        .on('mouseover', function(d_outer){
+
+            d = data_new[d_outer.id];
+            cx = x(d[0]);
+            cy = y(d[1]);
+
+            //make a mark in the canvas to highlight the ith position
+            canvas2.beginPath();
+            canvas2.fillStyle="#000000";
+            canvas2.moveTo(cx, cy);
+            canvas2.arc(cx, cy, 10, 0, 2 * Math.PI);
+            canvas2.fill();
+            canvas2.closePath()
+
+            // on mouse out, remove the mark
+
+        })
+                .on('mouseout', function(d){
+                    canvas2.clearRect(0, 0, width, height);
+                    draw_canvas2();
+
+                });
+
+    hoverdiv.append("span")
+                    .style("font-size", "12pt")
+                    .text(function (d) {
+                        return String(d.id).concat(" ");
+                    });
+
+
+//    color = d3.scale.linear()
+//            .domain([min_val, 0.5*(min_val+max_val), max_val])
+//            .range(colorbrewer.RdYlBu[3].reverse());
+
+        colorbar_svg = d3.select("#colorbar");
+        colorbar_svg.call(color_scale, 70, 200, 240, [min_val, max_val], "scale_left_overview", "left");
+        colorbar_svg.call(adaptive_cb, 80, 200, 240, color, "colorbar_left_overview", 0, 1.0,[min_val, max_val]);
+
+
+    });
+
+
+
+
+    var x = d3.scale.linear()
+            .domain([-1, 1])
+            .range([0, width]);
+
+    var y = d3.scale.linear()
+            .domain([-1, 1])
+            .range([height, 0]);
+
+
+    var cid = 0;
+
+    document.onkeydown = function(e) {
+        e = e || window.event;
+        if (e.keyCode == '37') {
+            if (cid === 0){
+                cid = N_i-1;
+            }else{
+                cid = (cid -1)% N_i;
+            }
+
+            changeImage("img_spline1", imgs_spline) //left <- show Prev image
+            changeImage("img_dis", imgs_dis)
+            changeImage("img_dep", imgs_dep)
+            changeImage("img_tot", imgs_tot)
+
+        } else if (e.keyCode == '39') {
+            // right -> show next image
+
+                cid = (cid+1) % N_i;
+
+            changeImage("img_spline1",imgs_spline)
+            changeImage("img_dis",imgs_dis)
+            changeImage("img_dep",imgs_dep)
+            changeImage("img_tot",imgs_tot)
+        }
+
+        $('#cid').html(String(cid));
+
+
+//        console.log(data_tsvs[cid])
+
+        d3.tsv(data_tsvs[cid], function (error, data) {
+
+                if (error) throw error;
+                data_cur = [];
+                data_new = [];
+                data_dfs = [];
+                data_dpfs = [];
+
+                data.forEach(function (d, i) {
+
+
+                    d.cpx = +d.cpx;
+                    d.cpy = +d.cpy;
+                    data_cur.push([d.cpx, d.cpy]);
+
+                    d.npx = +d.npx;
+                    d.npy = +d.npy;
+                    data_new.push([d.npx, d.npy]);
+
+                    d.dfx = +d.dfx;
+                    d.dfy = +d.dfy;
+                    data_dfs.push([d.dfx, d.dfy]);
+
+                    d.dpfx = +d.dpfx;
+                    d.dpfy = +d.dpfy;
+                    data_dpfs.push([d.dpfx, d.dpfy]);
+
+                });
+                canvas1.fillStyle="white";
+                canvas1.fillRect(0,0,width,height)
+//                canvas1.clearRect(0, 0, width, height);
+                draw_canvas1();
+
+                canvas2.fillStyle="white";
+                canvas2.fillRect(0,0,width,height)
+//                canvas2.clearRect(0, 0, width, height);
+                draw_canvas2();
+        });
+//        console.log(data_cur.length)
+//        console.log(data_cur)
+
+
+//        draw_canvas2(); // also change data to data2
+
+    }
+
+    function changeImage(img_id, imgs) {
+        var img = document.getElementById(img_id);
+//        img.src = imgs[imgs.indexOf(img.src) + (dir || 1)] || imgs[dir ? imgs.length - 1 : 0];
+        img.src = imgs[cid]
+    }
+
+
+
+    //http://stackoverflow.com/questions/15147136/how-to-know-the-current-zoom-level-in-d3-js
+    var canvas1 = d3.select("#canvas1")
+            .call(zm=d3.behavior.zoom().x(x).y(y).scaleExtent([1, 12]).on("zoom", zoom_canvas1))
+            .node().getContext("2d");
+
+    function zoom_canvas1() {
+//        canvas1.clearRect(0, 0, width, height);
+        canvas1.fillStyle="white";
+        canvas1.fillRect(0,0,width,height)
+        draw_canvas1();
+
+    }
+
+    function draw_canvas1() {
+        var i = -1, n = data_cur.length, d, cx, cy;
+
+        while (++i < n) {
+            d = data_cur[i];
+            cx = x(d[0]);
+            cy = y(d[1]);
+
+            var grad_fac = 25600;
+            arrow(canvas1,cx,cy,cx-grad_fac*data_dfs[i][0],cy+grad_fac*data_dfs[i][1],"red");
+            arrow(canvas1,cx,cy,cx-grad_fac*data_dpfs[i][0],cy+grad_fac*data_dpfs[i][1],"green");
+
+            canvas1.beginPath();
+            canvas1.fillStyle=color(ori_deps[i]);
+            canvas1.moveTo(cx, cy);
+            canvas1.arc(cx, cy, 5, 0, 2 * Math.PI);
+            canvas1.fill();
+
+            canvas1.fillStyle="#000000";
+            canvas1.font = "18px Arial";
+            canvas1.fillText(String(i),cx,cy);
+//            canvas1.fillText(names[i],cx,cy);
+            canvas1.closePath()
+
+
+
+        }
+
+    }
+
+    var canvas2 = d3.select("#canvas2")
+            .call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 12]).on("zoom", zoom_canvas2))
+            .node().getContext("2d");
+
+//    draw_canvas2();
+
+    function zoom_canvas2() {
+        canvas2.fillStyle="white";
+        canvas2.fillRect(0,0,width,height)
+//        canvas2.clearRect(0, 0, width, height);
+        draw_canvas2();
+    }
+
+    function draw_canvas2() {
+        var i = -1, n = data_new.length, d, cx, cy;
+
+        while (++i < n) {
+            d = data_new[i];
+            cx = x(d[0]);
+            cy = y(d[1]);
+            canvas2.beginPath();
+            canvas2.fillStyle=color(ori_deps[i]);
+            canvas2.moveTo(cx, cy);
+            canvas2.arc(cx, cy, 5, 0, 2 * Math.PI);
+            canvas2.fill();
+            canvas2.font = "18px Arial";
+//            canvas2.fillText(String(i),cx,cy);
+//            canvas2.fillText(names[i],cx,cy);
+            canvas2.closePath();
+
+
+
+        }
+
+
+
+
+        if (show_images==true){
+            i=-1;
+            while (++i < n) {
+                d = data_new[i];
+                cx = x(d[0]);
+                cy = y(d[1]);
+
+                var imageObj = new Image();
+                imageObj.src = base_path.concat("images/").concat(pad(i, 4).concat(".png"));
+                canvas2.drawImage(imageObj, cx, cy, imageObj.width * 1.5, imageObj.height * 1.5);
+            }
+        }
+
+    }
+
+    function draw_canvas2_tooltip(mouseX,mouseY) {
+        var i = -1, n = data_new.length, d, cx, cy;
+        var showing_details = false;
+
+//        canvas2.clearRect(0, 0, width, height);
+
+        while (++i < n) {
+            d = data_new[i];
+            cx = x(d[0]);
+            cy = y(d[1]);
+            canvas2.beginPath();
+            canvas2.fillStyle = color(ori_deps[i]);
+            canvas2.moveTo(cx, cy);
+            canvas2.arc(cx, cy, 5, 0, 2 * Math.PI);
+            canvas2.fill();
+            canvas2.font = "18px Arial";
+//            canvas2.fillText(String(i), cx, cy);
+//            canvas2.fillText(names[i],cx,cy);
+            canvas2.closePath();
+
+            var dx=mouseX-cx;
+            var dy=mouseY-cy;
+//            console.log(mouseX-x(data_new[5][0]),mouseY-y(data_new[5][1]))
+            if(dx*dx+dy*dy<100) {
+                canvas2.font = "25px Arial";
+//                canvas2.fillText(String(cx).concat(",\n").concat(String(cy)),cx,cy);
+
+                details_div.html("");
+//                    details_div.html(String(cx).concat(",<br>").concat(String(cy))); //this will add the image on mouseover
+                details_div.html("Point id: ".concat(String(i))
+                        .concat("<br>Position: ").concat(String(round(data_cur[i][0],4))).concat(', ').concat(String(round(data_cur[i][1],4)))
+                        .concat("<br>Dis force: ").concat(String(round(data_dfs[i][0],4))).concat(', ').concat(String(round(data_dfs[i][1],4)))
+                        .concat("<br>Dep force: ").concat(String(round(data_dpfs[i][0],4))).concat(', ').concat(String(round(data_dpfs[i][1],4)))
+                        .concat("<br>New pos: ").concat(String(round(data_new[i][0],4))).concat(', ').concat(String(round(data_new[i][1],4)))
+                        .concat("<br>Depth: ").concat(String(round(ori_deps[i],4))));
+//                        .concat("<br>Name: ").concat(names[i]));
+
+
+                showing_details = true;
+
+
+
+//                details_div
+//                        .append('img')
+//                        .attr('class', 'picture')
+//                        .attr('src', imgs_spline[i%3]);
+            }
+
+
+        }
+
+        if(show_on_hover==true){
+            i=-1;
+            while (++i < n) {
+                d = data_new[i];
+                cx = x(d[0]);
+                cy = y(d[1]);
+                 var dx=mouseX-cx;
+            var dy=mouseY-cy;
+                if(dx*dx+dy*dy<100) {
+                    var imageObj = new Image();
+                    imageObj.src = base_path.concat("images/").concat(pad(i,4).concat(".png"));
+                    canvas2.drawImage(imageObj, cx, cy);
+                }
+            }
+
+        }
+
+
+
+        if (show_images==true){
+            i=-1;
+            while (++i < n) {
+                d = data_new[i];
+                cx = x(d[0]);
+                cy = y(d[1]);
+
+                var imageObj = new Image();
+                imageObj.src = base_path.concat("images/").concat(pad(i, 4).concat(".png"));
+                canvas2.drawImage(imageObj, cx, cy, imageObj.width * 1.5, imageObj.height * 1.5);
+            }
+        }
+
+        if (showing_details==false){
+//                $( "#details" ).empty();
+            details_div.html("Point id:<br>Position: <br>Dis force: <br>Dep force: <br>New pos: <br>Depth: <br>Name: ")
+        }
+
+
+        canvas2.fill();
+    }
+
+    $("#canvas2").mousemove(function(e){handleMouseMove(e);});
+
+
+    function reOffset(){
+        var can2=document.getElementById("canvas2");
+        var BB=can2.getBoundingClientRect();
+        offsetX=BB.left;
+        offsetY=BB.top;
+    }
+    var offsetX,offsetY;
+    reOffset();
+    window.onscroll=function(e){ reOffset(); }
+    window.onresize=function(e){ reOffset(); }
+
+    function handleMouseMove(e){
+        // tell the browser we're handling this event
+        if (e.buttons!==1) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            mouseX = parseInt(e.clientX - offsetX);
+            mouseY = parseInt(e.clientY - offsetY);
+
+//            canvas2.clearRect(0, 0, width, height);
+            canvas2.fillStyle="white";
+            canvas2.fillRect(0,0,width,height)
+            draw_canvas2_tooltip(mouseX, mouseY);
+        }
+
+
+//        for(var i=0;i<hotspots.length;i++){
+//            var h=hotspots[i];
+//            var dx=mouseX-h.x;
+//            var dy=mouseY-h.y;
+//            if(dx*dx+dy*dy<h.radius*h.radius){
+//                ctx.fillText(h.tip,h.x,h.y);
+//            }
+//        }
+
+    }
+
+
+</script>
+
+
+
+
+</body>
+</html>
+
+
+<!-- Change images http://jsfiddle.net/7LhLsh7L/-->
+<!-- canvas stuff https://bl.ocks.org/mbostock/3681006-->
+<!-- tooltip http://stackoverflow.com/questions/30795139/displaying-tooltips-on-mouse-hover-on-shapes-positioncoordinates-on-canvas-->
+<!-- image tooltip http://stackoverflow.com/questions/19756064/how-to-create-tooltip-in-d3-to-get-image-on-mouseover-on-a-node-in-a-graph-->
+<!-- saving an axis in matplot lib http://stackoverflow.com/questions/4325733/save-a-subplot-in-matplotlib-->
+<!-- normalization http://stats.stackexchange.com/questions/23680/how-to-measure-distance-for-features-with-different-scales -->
+
+<!--
+pending:
+- automate N_i setting
+- stop at end of the N_i and zero rather than looping
+- point highlighting on the left side view
+-->

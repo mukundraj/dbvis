@@ -1,0 +1,2 @@
+Initial visualization templates for looking at rectangle, sphere, ellipse and convex hull
+bands for points and functions.

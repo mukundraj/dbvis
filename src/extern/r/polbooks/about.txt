@@ -1,0 +1,6 @@
+2017-10-17: Files to process the polbooks graph's ego networks
+get them into an igraph ensemble, and compute the graph matrix using the graph kernel
+library (https://www.bsse.ethz.ch/mlcb/research/machine-learning/graph-kernels.html).
+
+polbooks data: /Users/mukundraj/Desktop/work/projects/kerneldepth/kerneldepth/data/2017-10-12/polbooks
+

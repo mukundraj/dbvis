@@ -1,0 +1,17 @@
+total_2_1edge = 15
+total_2_indep = 6
+total_3_tris = 13
+total_2_star = 15
+total_3_1edge = 6
+total_3_indep = 1
+total_4_clique = 4
+total_4_chordcycle = 12
+total_4_tailed_tris = 12
+total_4_cycle = 0
+total_3_star = 2
+total_4_path = 2
+total_4_1edge = 0
+total_4_2edge = 1
+total_4_2star = 2
+total_4_tri = 0
+total_4_indep = 0

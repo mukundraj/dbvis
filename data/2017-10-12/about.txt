@@ -1,0 +1,8 @@
+pinar_datasets: graph data from the pinar deep kernel paper downloaded on 2017-10-12
+                download link: http://www.mit.edu/~pinary/kdd/
+
+polbooks: Politial books data downloaded on 2017-10-17
+            download link: http://www-personal.umich.edu/~mejn/netdata/
+
+ufo: ufo data downloaded on 2017-11-18
+            download link: http://www.stat.ufl.edu/~winner/data/ufocase.dat

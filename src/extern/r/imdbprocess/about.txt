@@ -1,0 +1,4 @@
+2017-10-12: Files to process the imdb data from the pinar deep kernels paper and
+get them into an igraph ensemble, and compute the graph matrix using the graph kernel
+library (https://www.bsse.ethz.ch/mlcb/research/machine-learning/graph-kernels.html).
+
