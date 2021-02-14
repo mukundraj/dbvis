@@ -9,9 +9,10 @@ To compute depth based embeddings:
 2. Navigate to {$ROOT}/src/extern/cpp and run:
 	g++ -shared HD.cpp -std=c++11 -O2 -o HD.so
 3. Modify input ("infile") path in https://bitbucket.org/mukundraj/dbvis/src/master/results/2017-06-18/breast/setdepth/run.py
-3. python run.py
+4. Create output folder {$ROOT}/results/2017-06-18/breast/setdepth/output_tsvs
+5. python run.py
 
-Output: Point positions and additional information after each iteration fo optimization is written out to the {$ROOT}/results/2017-06-18/breast/setdepth/output_tsvs folder
+Output: Point positions and additional information about forces on points after each iteration of optimization is written out to the output folder.
 
 
 Visualization:
