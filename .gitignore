@@ -25,3 +25,9 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+.DS_Store
+output_tsvs
+dists_dmds.tsv
+dists_mds.tsv
+edges.tsv

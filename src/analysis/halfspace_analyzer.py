@@ -153,7 +153,7 @@ class analyzer(object):
 
         """
 
-        _sum = ctypes.CDLL('/Users/mukundraj/Desktop/work/projects/kerneldepth/kerneldepth/src/extern/cpp/HD.so')
+        _sum = ctypes.CDLL('/Users/mraj/Desktop/work/projects/testlab/dbvis/src/extern/cpp/HD.so')
         _sum.our_function.argtypes = (ctypes.c_int, ctypes.c_int,ctypes.POINTER(ctypes.c_double))
         _sum.our_function.restype = ctypes.c_double
 

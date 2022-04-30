@@ -18,8 +18,10 @@ import src.datarelated.processing.dim_reduction as dr
 import src.visualization.garl as garl
 import src.datarelated.readwrite.datacsvs as rw
 
+import sys
+sys.path.append("/Users/mraj/Desktop/work/projects/testlab/dbvis")
 
-infile = '/Users/mukundraj/Desktop/work/projects/kerneldepth/kerneldepth/data/2017-10-12/breast/breast-cancer.data'
+infile = 'data/2017-10-12/breast/breast-cancer.data'
 
 X = dc.get_breast_data(infile, clas=2)
 dc.write_csv_for_breast_vis(infile, clas=2)
