@@ -1,0 +1,47 @@
+name: py27
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - ca-certificates=2021.10.8=h033912b_0
+  - certifi=2019.11.28=py27h8c360ce_1
+  - geos=3.8.1=h4a8c4bd_0
+  - libblas=3.9.0=14_osx64_openblas
+  - libcblas=3.9.0=14_osx64_openblas
+  - libcxx=12.0.0=h2f01273_0
+  - libffi=3.3=hb1e8313_2
+  - libgfortran=5.0.0=9_3_0_h6c81a4c_23
+  - libgfortran5=9.3.0=h6c81a4c_23
+  - liblapack=3.9.0=14_osx64_openblas
+  - libopenblas=0.3.20=openmp_hb3cd9ec_0
+  - llvm-openmp=14.0.3=ha654fa7_0
+  - ncurses=6.3=hca72f7f_2
+  - numpy=1.15.4=py27hbb3c62a_1002
+  - pip=19.3.1=py27_0
+  - python=2.7.18=h47d645e_1
+  - python_abi=2.7=1_cp27m
+  - readline=8.1.2=hca72f7f_1
+  - setuptools=44.0.0=py27_0
+  - sqlite=3.38.2=h707629a_0
+  - tk=8.6.11=h7bc2e8c_0
+  - wheel=0.37.1=pyhd3eb1b0_0
+  - zlib=1.2.12=h4dc903c_2
+  - pip:
+    - backports-functools-lru-cache==1.6.4
+    - cycler==0.10.0
+    - decorator==4.4.2
+    - kiwisolver==1.1.0
+    - matplotlib==2.2.5
+    - networkx==1.9.1
+    - pandas==0.24.2
+    - pillow==6.2.2
+    - produtils==0.2
+    - pyparsing==2.4.7
+    - python-dateutil==2.8.2
+    - pytz==2022.1
+    - scikit-learn==0.18
+    - scipy==1.2.3
+    - shapely==1.7.1
+    - six==1.16.0
+    - subprocess32==3.5.4
+prefix: /Users/mraj/opt/miniconda3/envs/py27

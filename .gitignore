@@ -31,3 +31,4 @@ output_tsvs
 dists_dmds.tsv
 dists_mds.tsv
 edges.tsv
+node_names.json
